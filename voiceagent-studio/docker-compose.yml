@@ -1,0 +1,40 @@
+
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    command: --dev --bind 0.0.0.0
+    environment:
+      - "LIVEKIT_KEYS=devkey: secret"
+
+  agent:
+    build: ./agent
+    env_file: .env
+    depends_on:
+      - livekit
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+    volumes:
+      - ./agent:/app
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - livekit
+    volumes:
+      - ./api:/app
+    restart: unless-stopped
+
+networks:
+  default:
+    name: voiceagent-network
