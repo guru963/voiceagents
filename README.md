@@ -6,6 +6,11 @@ This platform leverages WebRTC audio transport, real-time speech-to-text, low-la
 
 ---
 
+## Demo Link
+[Watch Demo](https://drive.google.com/file/d/14D1HuOCf3ix0sF42xSoAZ0v8BYxi7e-x/view?usp=sharing)
+
+---
+
 ##  Architecture
 
 ```mermaid
