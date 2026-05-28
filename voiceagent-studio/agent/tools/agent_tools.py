@@ -17,7 +17,7 @@ async def book_appointment(
     preferred_date: str,
     doctor_name: str = "",
 ) -> str:
-    """Book a hospital appointment. Returns confirmation or error message."""
+    """Book a hospital appointment. ONLY call after collecting patient name, department, doctor, date, AND getting explicit confirmation."""
     logger.info(
         "tool_book_appointment",
         patient=patient_name,
@@ -35,28 +35,16 @@ async def book_appointment(
 
 
 async def check_doctor_availability(department: str, date: str) -> str:
-    """Check available doctors in a department on a given date."""
+    """Look up available doctor slots. ONLY call after the patient has specified which department and date they want."""
     logger.info("tool_check_availability", dept=department, date=date)
-    # Mock data — replace with real HMS API
-    mock_slots = {
-        "cardiology": ["Dr. Ramesh Kumar - 10:00 AM", "Dr. Priya Nair - 2:00 PM"],
-        "orthopaedics": ["Dr. Suresh Iyer - 11:30 AM"],
-        "general": ["Dr. Anita Sharma - 9:00 AM", "Dr. Kiran Patel - 4:00 PM"],
-    }
-    dept_lower = department.lower()
-    slots = mock_slots.get(dept_lower, ["Dr. General Physician - 10:00 AM"])
-    return f"Available slots in {department} on {date}: " + ", ".join(slots)
+    from rag.doctors_data import query_availability
+    return query_availability(department, date)
 
 
 async def get_department_info(department: str) -> str:
-    """Get information about a hospital department."""
-    info = {
-        "cardiology": "Floor 3, Block A. Specialises in heart conditions. Call ext 301.",
-        "orthopaedics": "Floor 2, Block B. Bone and joint care. Call ext 201.",
-        "emergency": "Ground floor, open 24/7. Walk-in without appointment.",
-        "radiology": "Floor 1, Block C. X-Ray, MRI, CT Scan. Prior appointment needed.",
-    }
-    return info.get(department.lower(), f"{department} department — please call our helpdesk at 044-2829-0200 for details.")
+    """Get location and details for a specific hospital department. Only call when the patient asks about a department."""
+    from rag.doctors_data import get_dept_details
+    return get_dept_details(department)
 
 
 # ── Hospitality tools ─────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Phone, Plus, Trash2, Mic } from 'lucide-react'
+import { Phone, Plus, Trash2, Mic, Calendar } from 'lucide-react'
 import { agentApi } from '../lib/api'
 
 // Demo agents — always shown
@@ -74,13 +74,22 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold text-white">VoiceAgent Studio</h1>
           <p className="text-sm text-gray-400 mt-1">Multilingual voice AI agents for real industries</p>
         </div>
-        <Link
-          to="/build"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Agent
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/appointments"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Calendar className="w-4 h-4 text-blue-400" />
+            My Appointments
+          </Link>
+          <Link
+            to="/build"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Agent
+          </Link>
+        </div>
       </div>
 
       {/* Agent grid */}

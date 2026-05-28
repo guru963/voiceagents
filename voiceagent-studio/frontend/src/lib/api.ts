@@ -51,4 +51,13 @@ export const authApi = {
     api.post('/auth/login', { email, password }),
 }
 
+export const appointmentApi = {
+  list: (month?: string) =>
+    api.get('/appointments/', { params: month ? { month } : {} }),
+  create: (data: any) => api.post('/appointments/', data),
+  delete: (id: string) => api.delete(`/appointments/${id}`),
+  updateStatus: (id: string, status: string) =>
+    api.patch(`/appointments/${id}`, { status }),
+}
+
 export default api

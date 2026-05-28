@@ -82,6 +82,12 @@ class _KokoroStream(tts.ChunkedStream):
             )
 
             for samples in audio_chunks:
+                # Convert PyTorch Tensor to NumPy array if needed
+                if hasattr(samples, "numpy"):
+                    samples = samples.cpu().numpy() if hasattr(samples, "cpu") else samples.numpy()
+                elif not isinstance(samples, np.ndarray):
+                    samples = np.array(samples)
+
                 # samples is a numpy float32 array at 24 kHz
                 pcm_int16 = (np.clip(samples, -1.0, 1.0) * 32767).astype(np.int16)
                 output_emitter.push(pcm_int16.tobytes())
@@ -90,6 +96,92 @@ class _KokoroStream(tts.ChunkedStream):
         except Exception as e:
             logger.error("kokoro_tts_error", error=str(e))
             raise
+
+
+# ── Fallback TTS ──────────────────────────────────────────────────────────────
+
+class FallbackTTS(tts.TTS):
+    """
+    A TTS wrapper that attempts to use a primary TTS (e.g. Kokoro) and falls back
+    to a secondary TTS (e.g. Edge TTS) if the primary fails during synthesis.
+    """
+
+    def __init__(self, primary: tts.TTS, fallback: tts.TTS):
+        super().__init__(
+            capabilities=primary.capabilities,
+            sample_rate=primary.sample_rate,
+            num_channels=primary.num_channels,
+        )
+        self._primary = primary
+        self._fallback = fallback
+
+    def synthesize(self, text: str, *, conn_options=DEFAULT_CONN_OPTIONS):
+        return _FallbackStream(
+            tts_instance=self,
+            input_text=text,
+            conn_options=conn_options,
+        )
+
+
+class _FallbackStream(tts.ChunkedStream):
+    def __init__(self, *, tts_instance: FallbackTTS, input_text: str, conn_options: APIConnectOptions):
+        super().__init__(tts=tts_instance, input_text=input_text, conn_options=conn_options)
+        self._tts_instance = tts_instance
+
+    async def _run(self, output_emitter):
+        primary = self._tts_instance._primary
+        fallback = self._tts_instance._fallback
+        req_id = None
+        
+        try:
+            logger.info("fallback_tts: attempting primary TTS synthesis")
+            primary_stream = primary.synthesize(self._input_text, conn_options=self._conn_options)
+            
+            initialized = False
+            async for ev in primary_stream:
+                if not initialized:
+                    req_id = ev.request_id
+                    output_emitter.initialize(
+                        request_id=req_id,
+                        sample_rate=primary.sample_rate,
+                        num_channels=primary.num_channels,
+                        mime_type="audio/pcm",
+                    )
+                    initialized = True
+                output_emitter.push(ev.frame.data.tobytes())
+                
+            if initialized:
+                output_emitter.flush()
+                logger.info("fallback_tts: primary TTS synthesis succeeded")
+                return
+            else:
+                raise RuntimeError("primary TTS did not yield any audio frames")
+                
+        except Exception as e:
+            logger.warning("fallback_tts: primary TTS failed, falling back to secondary", error=str(e))
+            
+            fallback_stream = fallback.synthesize(self._input_text, conn_options=self._conn_options)
+            initialized = False
+            async for ev in fallback_stream:
+                if not initialized:
+                    if not req_id:
+                        from livekit.agents.utils import shortuuid
+                        req_id = shortuuid()
+                    output_emitter.initialize(
+                        request_id=req_id,
+                        sample_rate=fallback.sample_rate,
+                        num_channels=fallback.num_channels,
+                        mime_type="audio/pcm",
+                    )
+                    initialized = True
+                output_emitter.push(ev.frame.data.tobytes())
+                
+            if initialized:
+                output_emitter.flush()
+                logger.info("fallback_tts: fallback TTS synthesis succeeded")
+            else:
+                raise RuntimeError("fallback TTS did not yield any audio frames")
+
 
 
 # ── Edge TTS ──────────────────────────────────────────────────────────────────

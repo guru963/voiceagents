@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 
 from core.config import get_settings
 from core.logger import setup_logging, get_logger
-from routers import agents, auth, calls, tokens, health
+from routers import agents, auth, calls, tokens, health, appointments
 
 setup_logging()
 logger = get_logger(__name__)
@@ -56,7 +56,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -66,6 +66,7 @@ app.include_router(auth.router,   prefix="/api/auth",   tags=["auth"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(tokens.router, prefix="/api/tokens", tags=["tokens"])
 app.include_router(calls.router,  prefix="/api/calls",  tags=["calls"])
+app.include_router(appointments.router, prefix="/api/appointments", tags=["appointments"])
 
 
 # ── Global exception handler — never leak stack traces ────────────────────────
